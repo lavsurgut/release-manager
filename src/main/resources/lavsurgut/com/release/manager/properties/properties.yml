@@ -1,0 +1,34 @@
+
+default:
+ version: 1.0
+
+environments:
+ deva:
+  lem_stg_user: lem_stg
+  lem_stg_user_pass: lem_dev_01
+  lem_dbo_user: lem_dbo
+  lem_dbo_user_pass: lem_dev_01
+  lem_ext_data_user: lem_external_data
+  lem_ext_data_user_pass: lem_dev_01
+  lem_rpt_user: lem_rpt
+  lem_rpt_user_pass: lem_dev_01
+  lem_mdm_user: lem_mdm
+  lem_mdm_user_pass: "!!cmx!!"
+  lem_db: LEMD1
+  lem_db_port: 1523
+  lem_db_host: xzur0101dor.zur.swissbank.com
+
+ devb:
+  lem_stg_user: lem_stg
+  lem_stg_user_pass: linux_lem_d4
+  lem_dbo_user: lem_dbo
+  lem_dbo_user_pass: linux_lem_d4
+  lem_ext_data_user: lem_external_data
+  lem_ext_data_user_pass: linux_lem_d4
+  lem_rpt_user: lem_rpt
+  lem_rpt_user_pass: linux_lem_d4  
+  lem_mdm_user: lem_mdm
+  lem_mdm_user_pass: "!!cmx!!"
+  lem_db: LEMD4
+  lem_db_host: xzur0101dor.zur.swissbank.com
+  lem_db_port: 1530  
