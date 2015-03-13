@@ -1,15 +1,15 @@
-package com.lavsurgut.release.manager
+package com.ubs.lem.release.manager
 
-import groovy.lang.Binding
-import groovy.lang.Closure
-import groovy.lang.GroovyShell
-import groovy.util.CliBuilder
+import java.util.HashMap;
 
-import java.util.LinkedHashMap
+import groovy.sql.Sql
 
 import org.apache.log4j.Logger
 
-import com.lavsurgut.release.manager.lib.config.ReleaseManagerContext
+import com.ubs.lem.release.manager.lib.config.ReleaseManagerContext
+import com.ubs.lem.release.manager.lib.task.Task;
+//
+
 
 /***********************************************************************
  * 
@@ -17,27 +17,27 @@ import com.lavsurgut.release.manager.lib.config.ReleaseManagerContext
  * 
  ***********************************************************************/
 
-ReleaseManagerContext context = new ReleaseManagerContext()
-context.setupContext(args, getClass())
+ReleaseManagerContext ctx = new ReleaseManagerContext()
+ctx.setupContext(args, getClass())
 
-String scriptDir = context.scriptDir
-GroovyShell groovyShell = context.groovyShell
-Logger log = context.scriptLogger
-Binding binding = context.binding
+String scriptDir = ctx.scriptDir
+GroovyShell groovyShell = ctx.groovyShell
+Logger log = ctx.scriptLogger
+Binding binding = ctx.binding
 
-Map tasks = context.tasks
-String runOption = context.runOption
-String envName = context.envName
-String version = context.version
+Map tasks = ctx.tasks
+String runOption = ctx.runOption
+String envName = ctx.envName
+String version = ctx.version
 
-Closure registerTask = context.registerTask
-Closure runTask = context.runTask
+Sql sql = new Sql(binding.getVariable("lemStgDataSource"))
 
 /***********************************************************************
  * 
  * Scripts configuration section
  * 
  ***********************************************************************/
+
 
 log.info "version: " + version
 
@@ -46,21 +46,24 @@ log.debug "envName: " + envName
 
 log.info "Running data load steps..."
 
-groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00001/modify.groovy")).with{registerTask(it)}
 
 
-switch ( runOption ) {
-	case "all":
-		tasks.keySet().each {
-			tasks[it].run()
-		}
-	default:
-		if (tasks[runOption])
-			tasks[runOption].run()
-		else
-			log.warn "Cannot find a task with '" + runOption + "' name"
-}
+groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00001/JIRA-ID-00001.groovy")).with{ctx.registerTask(it)}
 
+groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00002/JIRA-ID-00002.groovy")).with{ctx.registerTask(it)}
+
+
+if (runOption == "all")
+	tasks.keySet().each {
+		ctx.runTask(sql, it, tasks[it], version)
+	}
+else if (tasks[runOption])
+	ctx.runTask(sql, runOption, tasks[runOption], version)
+else
+	log.warn "Cannot find a task with '" + runOption + "' name"
+
+
+log.info "Run has been completed"
 
 
 
