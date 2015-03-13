@@ -1,11 +1,11 @@
-package com.ubs.lem.release.manager.lib.task
+package com.lavsurgut.release.manager.lib.task
 
 import groovy.util.logging.Log4j
-
+import com.lavsurgut.release.manager.lib.task.Task
 
 
 /**
- * @author Valery Lavrentiev, valeriy.lavrentev@ubs.com
+ * @author Valery Lavrentiev, lavsurgut@gmail.com
  *
  */
 @Log4j
@@ -74,7 +74,7 @@ class SqlPlusTask extends Task {
 		assert(logResultOutput.isEmpty())
 
 	}
-	@Override
+	//@Override
 	void executeCommand()
 	{
 
@@ -99,17 +99,17 @@ class SqlPlusTask extends Task {
 
 
 
-	@Override
+	//@Override
 	public void executeBeforeChecks() {
-		// TODO Auto-generated method stub
+		null
 		
 	}
 
 
 
-	@Override
+	//@Override
 	public void executeAfterChecks() {
-		// TODO Auto-generated method stub
+		null
 		
 	}
 

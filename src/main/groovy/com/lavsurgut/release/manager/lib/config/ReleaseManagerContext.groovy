@@ -1,17 +1,17 @@
 /**
  * 
  */
-package com.ubs.lem.release.manager.lib.config
+package com.lavsurgut.release.manager.lib.config
 
 import groovy.util.logging.Log4j
-import oracle.jdbc.pool.OracleDataSource
+//import oracle.jdbc.pool.OracleDataSource
 
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.yaml.snakeyaml.Yaml
 
 /**
- * @author Valery Lavrentiev, valeriy.lavrentev@ubs.com
+ * @author Valery Lavrentiev, lavsurgut@gmail.com
  *
  */
 @Log4j
@@ -29,11 +29,7 @@ class ReleaseManagerContext {
 	String runOption
 	String envName
 	String version
-	OracleDataSource lemStgDataSource
-	OracleDataSource lemExternalDataSource
-	OracleDataSource lemDboDataSource
-	OracleDataSource lemMdmDataSource
-	OracleDataSource lemRptDataSource
+
 	
 
 	Closure registerTask
@@ -71,7 +67,7 @@ class ReleaseManagerContext {
 	 * Db connection configuration
 	 * */
 
-	private void setupLemDbConnections () {
+/*	private void setupLemDbConnections () {
 		
 		Closure setupConnection = {obj, username, pass ->
 			obj.user = username
@@ -115,7 +111,7 @@ class ReleaseManagerContext {
 		binding.setVariable("lemMdmDataSource", lemMdmDataSource)
 		binding.setVariable("lemRptDataSource", lemRptDataSource)
 	}
-
+*/
 	private void setupInputOptions (String[] args, Class<Object> installClass) {
 
 		scriptDir = new File(installClass.protectionDomain.codeSource.location.path).parent + "/"
@@ -169,7 +165,7 @@ class ReleaseManagerContext {
 
 		setupLogging()
 
-		setupLemDbConnections()
+//		setupLemDbConnections()
 		
 		setupUtilityFunctions()
 		
