@@ -49,10 +49,6 @@ log.info "Running data load steps..."
 groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00001/modify.groovy")).with{registerTask(it)}
 
 
-
-log.info tasks.size()
-
-
 switch ( runOption ) {
 	case "all":
 		tasks.keySet().each {
