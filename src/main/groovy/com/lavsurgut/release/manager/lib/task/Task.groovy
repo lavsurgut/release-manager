@@ -1,5 +1,5 @@
 
-package com.ubs.lem.release.manager.lib.task
+package com.lavsurgut.release.manager.lib.task
 
 
 /**

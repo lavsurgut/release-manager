@@ -1,13 +1,13 @@
-package com.ubs.lem.release.manager
+package com.lavsurgut.release.manager
 
-import java.util.HashMap;
+import java.util.HashMap
 
 import groovy.sql.Sql
 
 import org.apache.log4j.Logger
 
-import com.ubs.lem.release.manager.lib.config.ReleaseManagerContext
-import com.ubs.lem.release.manager.lib.task.Task;
+import com.lavsurgut.release.manager.lib.config.ReleaseManagerContext
+import com.lavsurgut.release.manager.lib.task.Task
 //
 
 
@@ -48,9 +48,7 @@ log.info "Running data load steps..."
 
 
 
-groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00001/JIRA-ID-00001.groovy")).with{ctx.registerTask(it)}
-
-groovyShell.evaluate(new File(scriptDir + "scripts/JIRA-ID-00002/JIRA-ID-00002.groovy")).with{ctx.registerTask(it)}
+groovyShell.evaluate(new File(scriptDir + "scripts/test/modify.groovy")).with{ctx.registerTask(it)}
 
 
 if (runOption == "all")

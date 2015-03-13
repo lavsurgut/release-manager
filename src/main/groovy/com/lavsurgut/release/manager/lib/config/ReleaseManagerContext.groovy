@@ -1,17 +1,17 @@
 /**
  * 
  */
-package com.ubs.lem.release.manager.lib.config
+package com.lavsurgut.release.manager.lib.config
 
 import groovy.sql.Sql
 import groovy.util.logging.Log4j
-import oracle.jdbc.pool.OracleDataSource
+//import oracle.jdbc.pool.OracleDataSource
 
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.yaml.snakeyaml.Yaml
 
-import com.ubs.lem.release.manager.lib.task.Task
+import com.lavsurgut.release.manager.lib.task.Task
 
 /**
  * @author Valery Lavrentiev, lavsurgut@gmail.com
@@ -110,7 +110,7 @@ class ReleaseManagerContext {
 			obj.databaseName = binding.getVariable("lem_db")
 		}
 
-		OracleDataSource lemStgDataSource = new OracleDataSource()
+	/*	OracleDataSource lemStgDataSource = new OracleDataSource()
 		OracleDataSource lemExternalDataSource = new OracleDataSource()
 		OracleDataSource lemDboDataSource = new OracleDataSource()
 		OracleDataSource lemMdmDataSource = new OracleDataSource()
@@ -141,7 +141,7 @@ class ReleaseManagerContext {
 		binding.setVariable("lemExternalDataSource", lemExternalDataSource)
 		binding.setVariable("lemDboDataSource", lemDboDataSource)
 		binding.setVariable("lemMdmDataSource", lemMdmDataSource)
-		binding.setVariable("lemRptDataSource", lemRptDataSource)
+		binding.setVariable("lemRptDataSource", lemRptDataSource)*/
 	}
 
 	private void setupInputOptions (String[] args, Class<Object> installClass) {
