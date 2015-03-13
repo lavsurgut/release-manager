@@ -1,22 +1,23 @@
-package com.lavsurgut.release.manager.lib.task
+
+package com.ubs.lem.release.manager.lib.task
 
 
 /**
- * @author Valery Lavrentiev, lavsurgut@gmail.com
+ * @author Valery Lavrentiev, valeriy.lavrentev@ubs.com
  *
  */
 abstract class Task {
 
-	abstract void executeBeforeChecks()
+	Closure executeBeforeChecks
+
+	Closure executeAfterChecks
 
 	abstract void executeCommand()
 
-	abstract void executeAfterChecks()
-
-
 	void run () {
-		executeBeforeChecks()
+		executeBeforeChecks?.doCall()
 		executeCommand()
-		executeAfterChecks()
+		executeAfterChecks?.doCall()
 	}
 }
+
