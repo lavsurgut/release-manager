@@ -1,0 +1,62 @@
+
+package com.ubs.lem.release.manager.scripts
+
+import com.ubs.lem.release.manager.lib.task.SqlPlusTask
+import com.ubs.lem.release.manager.lib.task.Task
+import groovy.sql.Sql
+
+taskName = new File(getClass().protectionDomain.codeSource.location.path).getParentFile().getName()
+taskPath = new File(getClass().protectionDomain.codeSource.location.path).getParent() + "/"
+
+log.info "Configuring " + taskName + " ..."
+
+log.debug lem_db
+
+sql = new Sql(lemStgDataSource)
+
+return new SqlPlusTask(user : "${lem_stg_user}"
+					 , password : "${lem_stg_user_pass}"
+					 , tnsName : "${lem_db}"
+					 , script : taskPath + "test.sql"
+					 )
+
+
+package com.ubs.lem.release.manager.scripts
+
+import com.ubs.lem.release.manager.lib.task.SqlPlusTask
+import com.ubs.lem.release.manager.lib.task.ParallelTask
+import com.ubs.lem.release.manager.lib.task.Task
+import groovy.sql.Sql
+
+taskName = new File(getClass().protectionDomain.codeSource.location.path).getParentFile().getName()
+taskPath = new File(getClass().protectionDomain.codeSource.location.path).getParent() + "/"
+
+log.info "Configuring " + taskName + " ..."
+
+
+sql = new Sql(lemStgDataSource)
+dboSql = new Sql(lemDboDataSource)
+
+Map tasks =
+		["Task1" : new SqlPlusTask(user : "${lem_stg_user}"
+			, password : "${lem_stg_user_pass}"
+			, tnsName : "${lem_db}"
+			, script : taskPath + "test2.sql"
+			, executeBeforeChecks: {
+				def res2 = dboSql.firstRow("select count(1) cnt from lem_dbo.city")
+				assert (res2.cnt == 20) 
+			})
+		
+		,"Task2" : new SqlPlusTask(user : "${lem_stg_user}"
+			, password : "${lem_stg_user_pass}"
+			, tnsName : "${lem_db}"
+			, script : taskPath + "test.sql")]
+
+return new ParallelTask(runnables: tasks
+					,executeBeforeChecks: {
+				def res2 = dboSql.firstRow("select count(1) cnt from lem_dbo.city")
+				assert (res2.cnt == 20) 
+			})
+
+
+
