@@ -8,13 +8,13 @@ taskPath = new File(getClass().protectionDomain.codeSource.location.path).getPar
 
 log.info "Configuring " + taskName + " ..."
 
-log.debug lem_db
+log.debug db
 
-sql = new Sql(lemStgDataSource)
+sql = new Sql(testSource)
 
-return new SqlPlusTask(user : "${lem_stg_user}"
-					 , password : "${lem_stg_user_pass}"
-					 , tnsName : "${lem_db}"
+return new SqlPlusTask(user : "${relman_user}"
+					 , password : "${relman_user_pass}"
+					 , tnsName : "${db}"
 					 , script : taskPath + "test.sql"
 					 )
 /*

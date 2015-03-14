@@ -1,13 +1,11 @@
 package com.lavsurgut.release.manager
 
-import java.util.HashMap
-
 import groovy.sql.Sql
+import oracle.jdbc.pool.OracleDataSource
 
 import org.apache.log4j.Logger
 
 import com.lavsurgut.release.manager.lib.config.ReleaseManagerContext
-import com.lavsurgut.release.manager.lib.task.Task
 //
 
 
@@ -17,20 +15,47 @@ import com.lavsurgut.release.manager.lib.task.Task
  * 
  ***********************************************************************/
 
+OracleDataSource testSource
+
 ReleaseManagerContext ctx = new ReleaseManagerContext()
+
 ctx.setupContext(args, getClass())
+
+Binding binding = ctx.binding
+
+Closure setupDbConnections = {
+	
+		Closure setupConnection = { obj, username, pass ->
+			obj.user = username
+			obj.password = pass
+			obj.driverType = "thin"
+			obj.serverName = binding.getVariable("db_host")
+			obj.portNumber = binding.getVariable("db_port")
+			obj.databaseName = binding.getVariable("db")
+		}
+	
+		testSource = new OracleDataSource()
+		testSource.with {
+			setupConnection(it, binding.getVariable("relman_user"),binding.getVariable("relman_user_pass"))
+		}
+		binding.setVariable("testSource", testSource)
+	}
+	
+
+setupDbConnections()
+
+Sql sql = new Sql(testSource)
+
+ctx.installMetaDataTables(sql)
 
 String scriptDir = ctx.scriptDir
 GroovyShell groovyShell = ctx.groovyShell
 Logger log = ctx.scriptLogger
-Binding binding = ctx.binding
 
 Map tasks = ctx.tasks
 String runOption = ctx.runOption
 String envName = ctx.envName
 String version = ctx.version
-
-Sql sql = new Sql(binding.getVariable("lemStgDataSource"))
 
 /***********************************************************************
  * 
@@ -50,16 +75,7 @@ log.info "Running data load steps..."
 
 groovyShell.evaluate(new File(scriptDir + "scripts/test/modify.groovy")).with{ctx.registerTask(it)}
 
-
-if (runOption == "all")
-	tasks.keySet().each {
-		ctx.runTask(sql, it, tasks[it], version)
-	}
-else if (tasks[runOption])
-	ctx.runTask(sql, runOption, tasks[runOption], version)
-else
-	log.warn "Cannot find a task with '" + runOption + "' name"
-
+ctx.run(sql)
 
 log.info "Run has been completed"
 

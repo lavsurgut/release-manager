@@ -5,7 +5,7 @@ package com.lavsurgut.release.manager.lib.config
 
 import groovy.sql.Sql
 import groovy.util.logging.Log4j
-//import oracle.jdbc.pool.OracleDataSource
+import oracle.jdbc.pool.OracleDataSource
 
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
@@ -35,6 +35,12 @@ class ReleaseManagerContext {
 
 	Boolean noPromptOption
 
+	OracleDataSource lemStgDataSource
+	OracleDataSource lemExternalDataSource
+	OracleDataSource lemDboDataSource
+	OracleDataSource lemMdmDataSource
+	OracleDataSource lemRptDataSource
+
 	ReleaseManagerContext() {
 
 		this.binding = new Binding()
@@ -43,7 +49,7 @@ class ReleaseManagerContext {
 		this.cli = new CliBuilder()
 	}
 
-	private void installMetaDataTables (Sql sql) {
+	void installMetaDataTables (Sql sql) {
 		def tableExists = sql.firstRow """select count(1) cnt
 													from user_tables 
 													where table_name = 'RELEASE_REGISTER'"""
@@ -83,7 +89,7 @@ class ReleaseManagerContext {
 			binding.setVariable(i, value)
 		}
 		def src = (yaml.load(input))
-		
+
 		HashMap defVars = src.getAt("default") as HashMap
 		HashMap envVars = src.getAt("environments").getAt(envName) as HashMap
 
@@ -95,54 +101,7 @@ class ReleaseManagerContext {
 		}
 	}
 
-	/*
-	 * Db connection configuration
-	 * */
 
-	private void setupLemDbConnections () {
-
-		Closure setupConnection = { obj, username, pass ->
-			obj.user = username
-			obj.password = pass
-			obj.driverType = "thin"
-			obj.serverName = binding.getVariable("lem_db_host")
-			obj.portNumber = binding.getVariable("lem_db_port")
-			obj.databaseName = binding.getVariable("lem_db")
-		}
-
-	/*	OracleDataSource lemStgDataSource = new OracleDataSource()
-		OracleDataSource lemExternalDataSource = new OracleDataSource()
-		OracleDataSource lemDboDataSource = new OracleDataSource()
-		OracleDataSource lemMdmDataSource = new OracleDataSource()
-		OracleDataSource lemRptDataSource = new OracleDataSource()
-
-		lemStgDataSource.with {
-			setupConnection(it, binding.getVariable("lem_stg_user"),binding.getVariable("lem_stg_user_pass"))
-		}
-
-
-		lemExternalDataSource.with {
-			setupConnection(it, binding.getVariable("lem_ext_data_user"),binding.getVariable("lem_ext_data_user_pass"))
-		}
-
-		lemDboDataSource.with {
-			setupConnection(it, binding.getVariable("lem_dbo_user"),binding.getVariable("lem_dbo_user_pass"))
-		}
-
-		lemMdmDataSource.with {
-			setupConnection(it, binding.getVariable("lem_mdm_user"),binding.getVariable("lem_mdm_user_pass"))
-		}
-
-		lemRptDataSource.with {
-			setupConnection(it, binding.getVariable("lem_rpt_user"),binding.getVariable("lem_rpt_user_pass"))
-		}
-
-		binding.setVariable("lemStgDataSource", lemStgDataSource)
-		binding.setVariable("lemExternalDataSource", lemExternalDataSource)
-		binding.setVariable("lemDboDataSource", lemDboDataSource)
-		binding.setVariable("lemMdmDataSource", lemMdmDataSource)
-		binding.setVariable("lemRptDataSource", lemRptDataSource)*/
-	}
 
 	private void setupInputOptions (String[] args, Class<Object> installClass) {
 
@@ -180,11 +139,11 @@ class ReleaseManagerContext {
 	}
 
 
-/*
- *  Method runs a given task. It checks if it was executed and prompts a user if needed. It logs a task 
- *  after execution into a special table 
- */
-	void runTask(Sql sql, String taskName, Task task, String version) {
+	/*
+	 *  Method runs a given task. It checks if it was executed and prompts a user if needed. It logs a task 
+	 *  after execution into a special table 
+	 */
+	private void runTask(Sql sql, String taskName, Task task, String version) {
 		String userChoice
 		String runOption
 		final String runExistingOption = "RUN_EXISTING"
@@ -210,9 +169,6 @@ class ReleaseManagerContext {
 				log.error "Cannot get console."
 				runOption = skipOption
 			}
-
-
-
 		} else if (scriptExists.cnt == 1 && noPromptOption)
 			runOption = runExistingOption
 		else
@@ -241,19 +197,30 @@ class ReleaseManagerContext {
 						  and version = ${version}
 						"""
 			}
-
 		} else log.info "Skipping script ${taskName}."
-
-
 	}
 	/*Method is used to add a task into tasks map*/
 	void registerTask (Object obj) {
 		String taskName = binding.getVariable("taskName")
 		tasks.put(taskName, obj)
-		log.info "Configured task " + taskName		
+		log.info "Configured task " + taskName
 	}
 
+	/*Method determines the input option and executes the run task*/
+	void run (Sql sql) {
 
+
+		log.info "Running..."
+
+		if (runOption == "all")
+			tasks.keySet().each {
+				runTask(sql, it, tasks[it], version)
+			}
+		else if (tasks[runOption])
+			runTask(sql, runOption, tasks[runOption], version)
+		else
+			log.warn "Cannot find a task with '" + runOption + "' name"
+	}
 
 	/*
 	 *  Method configures all necessary properties for release scripts execution:
@@ -269,11 +236,7 @@ class ReleaseManagerContext {
 
 		setupInputOptions(args, installClass)
 
-		setupLemDbConnections()
-
 		tasks = new LinkedHashMap()
 		version = binding.getVariable("version")
-
-		installMetaDataTables(new Sql(binding.getVariable("lemStgDataSource")))
 	}
 }
