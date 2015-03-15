@@ -1,3 +1,4 @@
+package com.lavsurgut.release.manager.scripts.test4
 
 import com.lavsurgut.release.manager.lib.task.SqlPlusTask
 import com.lavsurgut.release.manager.lib.task.Task

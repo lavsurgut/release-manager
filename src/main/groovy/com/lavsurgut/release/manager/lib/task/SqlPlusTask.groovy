@@ -5,7 +5,7 @@ import groovy.util.logging.Log4j
 
 
 /**
- * @author Valery Lavrentiev, valeriy.lavrentev@ubs.com
+ * @author Valery Lavrentiev, lavsurgut@gmail.com
  *
  */
 @Log4j

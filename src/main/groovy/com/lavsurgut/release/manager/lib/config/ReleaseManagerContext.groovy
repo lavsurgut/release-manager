@@ -5,7 +5,8 @@ package com.lavsurgut.release.manager.lib.config
 
 import groovy.sql.Sql
 import groovy.util.logging.Log4j
-import oracle.jdbc.pool.OracleDataSource
+
+import javax.sql.DataSource
 
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
@@ -27,7 +28,7 @@ class ReleaseManagerContext {
 	final CliBuilder cli
 
 	String scriptDir
-	LinkedHashMap tasks
+	TreeMap tasks
 
 	String runOption
 	String envName
@@ -35,11 +36,9 @@ class ReleaseManagerContext {
 
 	Boolean noPromptOption
 
-	OracleDataSource lemStgDataSource
-	OracleDataSource lemExternalDataSource
-	OracleDataSource lemDboDataSource
-	OracleDataSource lemMdmDataSource
-	OracleDataSource lemRptDataSource
+	Sql sql
+
+
 
 	ReleaseManagerContext() {
 
@@ -49,7 +48,7 @@ class ReleaseManagerContext {
 		this.cli = new CliBuilder()
 	}
 
-	void installMetaDataTables (Sql sql) {
+	private void installMetaDataTables () {
 		def tableExists = sql.firstRow """select count(1) cnt
 													from user_tables 
 													where table_name = 'RELEASE_REGISTER'"""
@@ -78,6 +77,40 @@ class ReleaseManagerContext {
 							"""
 	}
 
+	private void setDefVariables(Object src) {
+
+		HashMap defVars = src.getAt("default") as HashMap
+		HashMap envDefVars = src.getAt("environments").getAt(envName).getAt("default") as HashMap
+		HashMap dsDefVars = src.getAt("environments").getAt(envName).getAt("dataSources").getAt("default") as HashMap
+
+		[defVars, envDefVars, dsDefVars].each { m ->
+			m?.keySet().each {
+				binding.setVariable(it, m[it])
+			}
+		}
+	}
+
+	private void setupDbConnections (Object src) {
+
+		HashMap dataSources = src.getAt("environments").getAt(envName).getAt("dataSources") as HashMap
+
+		dataSources.keySet().each { m->
+			if (m != "default") {
+				DataSource dataSource = this.class.classLoader.loadClass( dataSources[m].dataSourceDriverClass ?: binding.getVariable("dataSourceDriverClass")
+						, true ).newInstance()
+				dataSource.with { obj ->
+					obj.user = dataSources[m].user ?: binding.getVariable("user")
+					obj.password = dataSources[m].password ?: binding.getVariable("password")
+					obj.driverType = dataSources[m].driverType ?: binding.getVariable("driverType")
+					obj.serverName = dataSources[m].serverName ?: binding.getVariable("serverName")
+					obj.portNumber = dataSources[m].portNumber ?: binding.getVariable("portNumber")
+					obj.databaseName = dataSources[m].databaseName ?: binding.getVariable("databaseName")
+				}
+				binding.setVariable(m, dataSource)
+			}
+		}
+	}
+
 	/*
 	 * Method sets up all necessary user variables from yaml properties file and populates them in
 	 * binding.
@@ -85,22 +118,13 @@ class ReleaseManagerContext {
 	private void setEnvVariablesFromYaml(File file, String envName) {
 		Yaml yaml = new Yaml();
 		InputStream input = new FileInputStream(file)
-		Closure setVars = { i, value ->
-			binding.setVariable(i, value)
-		}
-		def src = (yaml.load(input))
 
-		HashMap defVars = src.getAt("default") as HashMap
-		HashMap envVars = src.getAt("environments").getAt(envName) as HashMap
+		def src = yaml.load(input)
 
-		defVars.keySet().each {
-			setVars(it, defVars[it])
-		}
-		envVars.keySet().each {
-			setVars(it, envVars[it])
-		}
+		setDefVariables(src)
+
+		setupDbConnections(src)
 	}
-
 
 
 	private void setupInputOptions (String[] args, Class<Object> installClass) {
@@ -109,7 +133,15 @@ class ReleaseManagerContext {
 
 		File properties = new File(scriptDir + "properties/properties.yml")
 		cli.setUsage("groovy install.groovy -r <taskname> -e <envname> [-np]")
-		cli.r(longOpt: "run", args:1, argName:"taskname", "specify either 'all' or task name to run", required: true )
+		cli.r(longOpt: "run", args:1, argName:"taskname","""specify either 'all' or task name to run
+															task name can be provided in following forms:
+															- "task" - simple one task execution
+															- "task1, task2" -	run every task from task1 to task2
+																				task1 included, task2 is not
+															- "task1, end" -	run every task from task1 included till the end
+															- "begin, task2" -	run every task from beginning to task2, task2 not included
+															- "parallel_task(sub_task1[, sub_taskN])" - run sub_task1, sub_task2, ..., sub_taskN 
+																										from parallel_task in parallel""", required: true )
 		cli.e(longOpt: "env", args:1, argName:"envname",  "specify env name to run on", required: true )
 		cli.np(longOpt: "noprompt", args:0, "specify whether to ask for re-run confirmation or not - default is prompt", required: false )
 
@@ -200,27 +232,42 @@ class ReleaseManagerContext {
 		} else log.info "Skipping script ${taskName}."
 	}
 	/*Method is used to add a task into tasks map*/
-	void registerTask (Object obj) {
-		String taskName = binding.getVariable("taskName")
-		tasks.put(taskName, obj)
-		log.info "Configured task " + taskName
+	void registerTask (String scriptName) {
+		groovyShell.evaluate(new File(scriptDir + scriptName)).with{
+			String taskName = binding.getVariable("taskName")
+			tasks.put(taskName, it)
+			log.info "Configured task " + taskName
+		}
 	}
 
 	/*Method determines the input option and executes the run task*/
-	void run (Sql sql) {
+	void run () {
 
+		TreeMap sbTasks = new TreeMap()
 
-		log.info "Running..."
+		if (runOption.contains(",")) {
+			String firstOption = runOption.split(",")[0]
+			String secondOption = runOption.split(",")[1].stripIndent()
+			if (firstOption == "begin")
+				sbTasks = tasks.headMap(secondOption)
+			else if (secondOption == "end")
+				sbTasks = tasks.tailMap(firstOption)
+			else
+				sbTasks = tasks.subMap( firstOption, secondOption)
+		} else if (runOption == "all")
+			sbTasks = tasks
+		else
+			sbTasks.put(runOption, tasks[runOption])
 
-		if (runOption == "all")
-			tasks.keySet().each {
-				runTask(sql, it, tasks[it], version)
+		if (sbTasks)
+			sbTasks.keySet().each {
+				runTask(sql, it, sbTasks[it], version)
 			}
-		else if (tasks[runOption])
-			runTask(sql, runOption, tasks[runOption], version)
 		else
 			log.warn "Cannot find a task with '" + runOption + "' name"
 	}
+
+
 
 	/*
 	 *  Method configures all necessary properties for release scripts execution:
@@ -236,7 +283,10 @@ class ReleaseManagerContext {
 
 		setupInputOptions(args, installClass)
 
+		sql = new Sql(binding.getVariable("metaDataSource"))
 		tasks = new LinkedHashMap()
 		version = binding.getVariable("version")
+
+		installMetaDataTables()
 	}
 }

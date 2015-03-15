@@ -3,7 +3,7 @@ package com.lavsurgut.release.manager.lib.task
 
 
 /**
- * @author Valery Lavrentiev, valeriy.lavrentev@ubs.com
+ * @author Valery Lavrentiev, lavsurgut@gmail.com
  *
  */
 abstract class Task {

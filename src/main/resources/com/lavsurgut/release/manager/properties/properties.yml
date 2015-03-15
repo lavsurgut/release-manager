@@ -1,12 +1,43 @@
 
 default:
  version: 1.0
-
+ 
 environments:
  test:
-  relman_user: relman
-  relman_user_pass: RELMAN
-  db: XE
-  db_port: 1521
-  db_host: localhost
+  dataSources:
+   default:
+    databaseName: XE
+    portNumber: 1521
+    serverName: localhost
+    driverType: thin
+    dataSourceDriverClass: oracle.jdbc.pool.OracleDataSource
+   relman: &metaDataSourceCreds
+    user: relman
+    password: RELMAN
+   relman2:
+    user: relman2
+    password: RELMAN2
+   metaDataSource: 
+    <<: *metaDataSourceCreds
+  
+
+ test2:
+  dataSources:
+   default:
+    databaseName: XE
+    portNumber: 1521
+    serverName: localhost
+    driverType: thin
+    dataSourceDriverClass: oracle.jdbc.pool.OracleDataSource
+   relman: &metaDataSourceCreds
+    user: relman
+    password: RELMAN
+   relman2:
+    user: relman2
+    password: RELMAN2
+   metaDataSource: 
+    <<: *metaDataSourceCreds
+    
+
+  
 
