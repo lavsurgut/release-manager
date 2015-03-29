@@ -12,6 +12,7 @@ import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.yaml.snakeyaml.Yaml
 
+import com.lavsurgut.release.manager.lib.task.ParallelTask
 import com.lavsurgut.release.manager.lib.task.Task
 
 /**
@@ -244,27 +245,54 @@ class ReleaseManagerContext {
 	void run () {
 
 		TreeMap sbTasks = new TreeMap()
+		def matcher
+		Map<String, Task> newRunnables = new HashMap<String, Task>()
 
-		if (runOption.contains(",")) {
-			String firstOption = runOption.split(",")[0]
-			String secondOption = runOption.split(",")[1].stripIndent()
-			if (firstOption == "begin")
-				sbTasks = tasks.headMap(secondOption)
-			else if (secondOption == "end")
-				sbTasks = tasks.tailMap(firstOption)
-			else
-				sbTasks = tasks.subMap( firstOption, secondOption)
-		} else if (runOption == "all")
-			sbTasks = tasks
-		else
-			sbTasks.put(runOption, tasks[runOption])
+		try {
+			//if a range option specified
+			if ((matcher = runOption =~ /^(.+)(,[^\(].+[^\)])$/)) {
+				String firstOption = runOption.split(",")[0].trim()
+				String secondOption = runOption.split(",")[1].trim()
+				if (firstOption == "begin")
+					sbTasks = tasks.headMap(secondOption)
+				else if (secondOption == "end")
+					sbTasks = tasks.tailMap(firstOption)
+				else
+					sbTasks = tasks.subMap( firstOption, secondOption)
+				//if parallel task option specified
+			} else if ((matcher = runOption =~ /^(.+\()(.+)(\))$/)) {
+				log.debug runOption
+				String taskName = matcher[0][1].replaceFirst(/\(/,"")
+				Task task = tasks[taskName]
+				if (task instanceof ParallelTask) {
+					matcher[0][2].split(",").each {
+						newRunnables.put(it, task.runnables[it])
+					}
+				} else
+					raise Exception
+				if (newRunnables.size() > 0)
+					task.runnables = newRunnables
+				else raise Exception
 
-		if (sbTasks)
-			sbTasks.keySet().each {
-				runTask(sql, it, sbTasks[it], version)
+				sbTasks.put(taskName, task)
 			}
-		else
-			log.warn "Cannot find a task with '" + runOption + "' name"
+			//if all tasks to run option
+			else if (runOption == "all")
+				sbTasks = tasks
+			else
+				//if exact task
+				sbTasks.put(runOption, tasks[runOption])
+
+			if (sbTasks)
+				sbTasks.keySet().each {
+					runTask(sql, it, sbTasks[it], version)
+				}
+			else
+				raise Exception
+		}
+		catch (Exception e) {
+			log.error "Cannot recognize a task with '" + runOption + "' name"
+		}
 	}
 
 
