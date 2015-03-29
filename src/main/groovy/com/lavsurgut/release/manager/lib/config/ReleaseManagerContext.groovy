@@ -51,11 +51,11 @@ class ReleaseManagerContext {
 
 	private void installMetaDataTables () {
 		def tableExists = sql.firstRow """select count(1) cnt
-													from user_tables 
-													where table_name = 'RELEASE_REGISTER'"""
+						from user_tables 
+						where table_name = 'RELEASE_REGISTER'"""
 		def seqExists = sql.firstRow """select count(1) cnt
-													from user_sequences
-													where sequence_name = 'SEQ_RELEASE_REGISTER_ID'"""
+						from user_sequences
+						where sequence_name = 'SEQ_RELEASE_REGISTER_ID'"""
 		if (tableExists.cnt == 0) {
 			sql.execute """
 							create table RELEASE_REGISTER
