@@ -29,7 +29,7 @@ class ReleaseManagerContext {
 	final CliBuilder cli
 
 	String scriptDir
-	TreeMap tasks
+	LinkedHashMap tasks
 
 	String runOption
 	String envName
@@ -80,9 +80,9 @@ class ReleaseManagerContext {
 
 	private void setDefVariables(Object src) {
 
-		HashMap defVars = src.getAt("default") as HashMap
-		HashMap envDefVars = src.getAt("environments").getAt(envName).getAt("default") as HashMap
-		HashMap dsDefVars = src.getAt("environments").getAt(envName).getAt("dataSources").getAt("default") as HashMap
+		LinkedHashMap defVars = src.getAt("default") as LinkedHashMap
+		LinkedHashMap envDefVars = src.getAt("environments").getAt(envName).getAt("default") as LinkedHashMap
+		LinkedHashMap dsDefVars = src.getAt("environments").getAt(envName).getAt("dataSources").getAt("default") as LinkedHashMap
 
 		[defVars, envDefVars, dsDefVars].each { m ->
 			m?.keySet().each {
@@ -93,7 +93,7 @@ class ReleaseManagerContext {
 
 	private void setupDbConnections (Object src) {
 
-		HashMap dataSources = src.getAt("environments").getAt(envName).getAt("dataSources") as HashMap
+		LinkedHashMap dataSources = src.getAt("environments").getAt(envName).getAt("dataSources") as LinkedHashMap
 
 		dataSources.keySet().each { m->
 			if (m != "default") {
@@ -173,8 +173,8 @@ class ReleaseManagerContext {
 
 
 	/*
-	 *  Method runs a given task. It checks if it was executed and prompts a user if needed. It logs a task 
-	 *  after execution into a special table 
+	 *  Method runs a given task. It checks if it was executed and prompts a user if needed. It logs a task
+	 *  after execution into a special table
 	 */
 	private void runTask(Sql sql, String taskName, Task task, String version) {
 		String userChoice
@@ -218,13 +218,13 @@ class ReleaseManagerContext {
 			log.info "Logging executed script ${taskName}..."
 			if (runOption == runNewOption) {
 				sql.execute """
-						insert into RELEASE_REGISTER 
+						insert into RELEASE_REGISTER
 						values(SEQ_RELEASE_REGISTER_ID.nextVal, ${taskName}, ${version}, sysdate)
 						"""
 			}
 			else if (runOption == runExistingOption) {
 				sql.execute """
-						update RELEASE_REGISTER 
+						update RELEASE_REGISTER
 						set update_date = sysdate
 						where script_name = ${taskName}
 						  and version = ${version}
@@ -244,7 +244,7 @@ class ReleaseManagerContext {
 	/*Method determines the input option and executes the run task*/
 	void run () {
 
-		TreeMap sbTasks = new TreeMap()
+		LinkedHashMap sbTasks = new LinkedHashMap()
 		def matcher
 		Map<String, Task> newRunnables = new HashMap<String, Task>()
 
@@ -253,15 +253,15 @@ class ReleaseManagerContext {
 			if ((matcher = runOption =~ /^(.+)(,[^\(].+[^\)])$/)) {
 				String firstOption = runOption.split(",")[0].trim()
 				String secondOption = runOption.split(",")[1].trim()
-				if (firstOption == "begin")
-					sbTasks = tasks.headMap(secondOption)
-				else if (secondOption == "end")
-					sbTasks = tasks.tailMap(firstOption)
-				else
-					sbTasks = tasks.subMap( firstOption, secondOption)
+				//TODO: rework on LinkedHashMap
+			//	if (firstOption == "begin")
+			//		sbTasks = tasks.headMap(secondOption)
+				//else if (secondOption == "end")
+			//		sbTasks = tasks.tailMap(firstOption)
+			//	else
+				//	sbTasks = tasks.subMap( firstOption, secondOption)
 				//if parallel task option specified
 			} else if ((matcher = runOption =~ /^(.+\()(.+)(\))$/)) {
-				log.debug runOption
 				String taskName = matcher[0][1].replaceFirst(/\(/,"")
 				Task task = tasks[taskName]
 				if (task instanceof ParallelTask) {
