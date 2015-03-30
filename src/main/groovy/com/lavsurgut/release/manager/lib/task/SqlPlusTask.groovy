@@ -5,7 +5,7 @@ import groovy.util.logging.Log4j
 
 
 /**
- * @author Valery Lavrentiev, lavsurgut@gmail.com
+ * @author Valery Lavrentiev
  *
  */
 @Log4j
@@ -16,7 +16,7 @@ class SqlPlusTask extends Task {
 	String user
 	String password
 	String tnsName
-	String dir
+
 	String script
 	
 	String sqlPlusOutBuffer
@@ -26,6 +26,8 @@ class SqlPlusTask extends Task {
 	String logResultOutput 
 
 	String negativePatternsList
+	
+	String argumentsLine
 
 
 	private void setServiceStmts() {
@@ -81,7 +83,7 @@ class SqlPlusTask extends Task {
 		errorproperty: "cmdErr",
 		resultproperty:"cmdExit",
 		failonerror: "true",
-		executable: "${sqlplusExecutable}") { arg(line: "-s ${user}/${password}@${tnsName} @${script}")}
+		executable: "${sqlplusExecutable}") { arg(line: "-s ${user}/${password}@${tnsName} @${script} ${argumentsLine}")}
 
 		sqlPlusErrBuffer = ant.project.properties.cmdErr
 		sqlPlusOutBuffer = ant.project.properties.cmdOut
