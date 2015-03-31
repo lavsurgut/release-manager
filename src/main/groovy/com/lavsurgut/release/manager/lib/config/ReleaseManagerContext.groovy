@@ -2,7 +2,6 @@
  * 
  */
 package com.lavsurgut.release.manager.lib.config
-
 import groovy.sql.Sql
 import groovy.util.logging.Log4j
 
@@ -137,10 +136,9 @@ class ReleaseManagerContext {
 		cli.r(longOpt: "run", args:1, argName:"taskname","""specify either 'all' or task name to run
 															task name can be provided in following forms:
 															- "task" - simple one task execution
-															- "task1, task2" -	run every task from task1 to task2
-																				task1 included, task2 is not
-															- "task1, end" -	run every task from task1 included till the end
-															- "begin, task2" -	run every task from beginning to task2, task2 not included
+															- "task1,task2" -	run every task from task1 to task2
+															- "task1,end"   -	run every task from task1 included till the end
+															- "begin,task2" -	run every task from beginning to task2
 															- "parallel_task(sub_task1[, sub_taskN])" - run sub_task1, sub_task2, ..., sub_taskN 
 																										from parallel_task in parallel""", required: true )
 		cli.e(longOpt: "env", args:1, argName:"envname",  "specify env name to run on", required: true )
@@ -246,6 +244,7 @@ class ReleaseManagerContext {
 
 		LinkedHashMap sbTasks = new LinkedHashMap()
 		def matcher
+		int lIndex, rIndex
 		Map<String, Task> newRunnables = new HashMap<String, Task>()
 
 		try {
@@ -253,14 +252,23 @@ class ReleaseManagerContext {
 			if ((matcher = runOption =~ /^(.+)(,[^\(].+[^\)])$/)) {
 				String firstOption = runOption.split(",")[0].trim()
 				String secondOption = runOption.split(",")[1].trim()
-				//TODO: rework on LinkedHashMap
-			//	if (firstOption == "begin")
-			//		sbTasks = tasks.headMap(secondOption)
-				//else if (secondOption == "end")
-			//		sbTasks = tasks.tailMap(firstOption)
-			//	else
-				//	sbTasks = tasks.subMap( firstOption, secondOption)
-				//if parallel task option specified
+				if (firstOption == "begin")
+					lIndex = 0
+				else
+					lIndex = tasks.findIndexOf{it.key == firstOption}
+
+				if (secondOption == "end")
+					rIndex = tasks.size() - 1
+				else
+					rIndex = tasks.findIndexOf{it.key == secondOption}
+				tasks.keySet().each { k ->
+					if((tasks.findIndexOf{it.key == k} >= lIndex) &&
+					(tasks.findIndexOf{it.key == k} <= rIndex))
+						sbTasks.put(k, tasks[k])
+				}
+				if (sbTasks.size() == 0)
+					throw new Exception("Cannot define a range for a task with name '" + taskName + "'")
+
 			} else if ((matcher = runOption =~ /^(.+\()(.+)(\))$/)) {
 				String taskName = matcher[0][1].replaceFirst(/\(/,"")
 				Task task = tasks[taskName]
@@ -269,10 +277,10 @@ class ReleaseManagerContext {
 						newRunnables.put(it, task.runnables[it])
 					}
 				} else
-					raise Exception
+					throw new Exception("Cannot find a parallel task with name '" + taskName + "'")
 				if (newRunnables.size() > 0)
 					task.runnables = newRunnables
-				else raise Exception
+				else throw new Exception("Cannot find parallel task subtasks with defined names")
 
 				sbTasks.put(taskName, task)
 			}
@@ -281,17 +289,20 @@ class ReleaseManagerContext {
 				sbTasks = tasks
 			else
 				//if exact task
-				sbTasks.put(runOption, tasks[runOption])
+				if (tasks[runOption])
+					sbTasks.put(runOption, tasks[runOption])
+				else
+					throw new Exception("Cannot find a task with name '" + runOption + "'")
 
-			if (sbTasks)
+			if (sbTasks.size() > 0)
 				sbTasks.keySet().each {
 					runTask(sql, it, sbTasks[it], version)
 				}
-			else
-				raise Exception
+			
 		}
 		catch (Exception e) {
-			log.error "Cannot recognize a task with '" + runOption + "' name"
+			log.error "Cannot run a task with '" + runOption + "' name because of errors"
+			e.printStackTrace()
 		}
 	}
 
@@ -318,3 +329,4 @@ class ReleaseManagerContext {
 		installMetaDataTables()
 	}
 }
+
